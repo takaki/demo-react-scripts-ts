@@ -1,9 +1,9 @@
 import * as React from 'react';
 import './App.css';
 import {Record} from 'immutable';
-import {createAction, handleActions, Action} from 'redux-actions';
+import {Action, createAction, handleActions} from 'redux-actions';
 import {createStore} from 'redux';
-import {connect, Provider, Dispatch} from 'react-redux';
+import {connect, Dispatch, Provider} from 'react-redux';
 import FloatingActionButton from 'material-ui/FloatingActionButton';
 import ContentAdd from 'material-ui/svg-icons/content/add';
 import ContentRemove from 'material-ui/svg-icons/content/remove';
@@ -12,31 +12,31 @@ import * as injectTapEventPlugin from 'react-tap-event-plugin';
 
 injectTapEventPlugin();
 
-class Counter extends Record({counter: 0}) {
+class MainState extends Record({counter: 0}) {
     counter: number;
 
     modify(diff: number) {
-        return new Counter(this.set('counter', this.counter + diff));
+        return new MainState(this.set('counter', this.counter + diff));
     }
 }
 
-interface AppProps {
-    data: Counter;
-    updateModel: (d: Counter) => void;
+interface MainAppProps {
+    mainState: MainState;
+    updateState: (d: MainState) => void;
 }
 
-class App extends React.Component<AppProps, undefined> {
+class MainApp extends React.Component<MainAppProps, undefined> {
     render() {
         return (
             <MuiThemeProvider>
                 <div className="App">
-                    <h1>{this.props.data.counter}</h1>
-                    <FloatingActionButton onClick={() => this.props.updateModel(this.props.data.modify(1))}>
+                    <h1>{this.props.mainState.counter}</h1>
+                    <FloatingActionButton onClick={() => this.props.updateState(this.props.mainState.modify(1))}>
                         <ContentAdd/>
                     </FloatingActionButton>
                     <FloatingActionButton
                         secondary={true}
-                        onClick={() => this.props.updateModel(this.props.data.modify(-1))}
+                        onClick={() => this.props.updateState(this.props.mainState.modify(-1))}
                     >
                         <ContentRemove/>
                     </FloatingActionButton>
@@ -46,37 +46,28 @@ class App extends React.Component<AppProps, undefined> {
     }
 }
 
-const initialState = new Counter();
-
-const updateModel = createAction<Counter>('UPDATE_MODEL');
-const reducer = handleActions<Counter>(
-    {
-        ['UPDATE_MODEL']: (state: Counter, action: Action<Counter>) => action.payload
-    },
-    initialState
-);
-
-const store = createStore(reducer);
-
-function mapStateToProps(state: Counter) {
-    return {data: state};
-}
-
-function mapDispatchToProps(dispatch: Dispatch<Counter>) {
-    return {
-        updateModel: function (m: Counter) {
-            dispatch(updateModel(m));
-        }
-    };
-
-}
-
-export default class RApp extends React.Component<undefined, undefined> {
+class App extends React.Component<{}, null> {
     render() {
-        const DApp = connect(mapStateToProps, mapDispatchToProps)(App);
+        const updateState = createAction<MainState>('UPDATE_MODEL');
+        const store = createStore(handleActions<MainState>(
+            {['UPDATE_MODEL']: (state: MainState, action: Action<MainState>) => action.payload},
+            new MainState()
+        ));
+        const DApp = connect(
+            (state: MainState) => {
+                return {mainState: state};
+            },
+            (dispatch: Dispatch<MainState>) => {
+                return {
+                    updateState: function (m: MainState) {
+                        dispatch(updateState(m));
+                    }
+                };
+            })(MainApp);
         return (
             <Provider store={store}>
                 <DApp />
             </Provider>);
     }
 }
+export default App;
